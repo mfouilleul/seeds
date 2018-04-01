@@ -40,13 +40,13 @@ func main() {
 
 	switch *discovery {
 	case "kubedns":
-		_, srvRecords, err := net.LookupSRV("", "", *service)
+		cname, srvRecords, err := net.LookupSRV("", "", *service)
 		if err != nil {
 			fmt.Printf("Unable to do SRV query for %q: %v", *service, err)
 			os.Exit(1)
 		}
 		for _, srvRecord := range srvRecords {
-			if !contains(excluded, srvRecord.Target) {
+			if !contains(excluded, srvRecord.Target, cname) {
 				seeds = append(seeds, srvRecord.Target)
 			}
 		}
@@ -61,9 +61,10 @@ func main() {
 	}
 }
 
-func contains(stringSlice []string, searchString string) bool {
-	for _, value := range stringSlice {
-		if value == searchString {
+func contains(podList []string, searchPod string, cname string) bool {
+	for _, value := range podList {
+		value = fmt.Sprintf("%s.%s", value, cname)
+		if value == searchPod {
 			return true
 		}
 	}
