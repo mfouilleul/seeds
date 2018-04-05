@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"io/ioutil"
 )
 
 var version = "0.1.0"
@@ -15,6 +16,7 @@ var (
 	service   = flag.String("service", "", "Governing service this pod is in. (Required)")
 	discovery = flag.String("discovery", "kubedns", "Service Discovery this pod & service use. {kubedns|synapse}")
 	toExclude = flag.String("exclude", "", "Excluded from seeds. Coma seperated list of pods")
+	output = flag.String("output", "", "Write seed list in a file")
 )
 
 func main() {
@@ -23,6 +25,11 @@ func main() {
 	var seeds []string
 	var excluded []string
 	separator := ","
+	self, err := os.Hostname()
+	if err != nil {
+		fmt.Printf("Unable to find self hostname, this is mandatory to exclude it from the list")
+                os.Exit(1)
+	}
 
 	if *help {
 		flag.PrintDefaults()
@@ -46,12 +53,17 @@ func main() {
 			os.Exit(1)
 		}
 		for _, srvRecord := range srvRecords {
-			if !contains(excluded, srvRecord.Target, cname) {
+			if !contains(excluded, srvRecord.Target, cname) && !contains(excluded, self, cname) {
 				seeds = append(seeds, srvRecord.Target)
 			}
 		}
 
 		fmt.Printf("%s", strings.Join(seeds, separator))
+                err = ioutil.WriteFile(output, []byte(strings.Join(seeds, separator), 0644)
+		if err != nil {
+                        fmt.Printf("Unable to write %s file: %v", *output, err)
+                        os.Exit(1)
+                }
 
 	case "synapse": // TODO
 		fmt.Printf("%v is not implemented yet\n", *discovery)
