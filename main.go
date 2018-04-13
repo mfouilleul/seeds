@@ -3,20 +3,20 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"strings"
-	"io/ioutil"
 )
 
-var version = "0.1.0"
+var version = "0.1.4"
 
 var (
 	help      = flag.Bool("help", false, "Show this help.")
-	service   = flag.String("service", "", "Governing service this pod is in. (Required)")
+	service   = flag.String("service", "", "Governing service this pod is in.")
 	discovery = flag.String("discovery", "kubedns", "Service Discovery this pod & service use. {kubedns|synapse}")
 	toExclude = flag.String("exclude", "", "Excluded from seeds. Coma seperated list of pods")
-	output = flag.String("output", "", "Write seed list in a file")
+	output    = flag.String("output", "stdout", "Write seed list in a file if specified.")
 )
 
 func main() {
@@ -28,7 +28,7 @@ func main() {
 	self, err := os.Hostname()
 	if err != nil {
 		fmt.Printf("Unable to find self hostname, this is mandatory to exclude it from the list")
-                os.Exit(1)
+		os.Exit(1)
 	}
 
 	if *help {
@@ -44,6 +44,7 @@ func main() {
 	if *toExclude != "" {
 		excluded = strings.Split(*toExclude, ",")
 	}
+	excluded = append(excluded, self)
 
 	switch *discovery {
 	case "kubedns":
@@ -58,12 +59,15 @@ func main() {
 			}
 		}
 
-		fmt.Printf("%s", strings.Join(seeds, separator))
-                err = ioutil.WriteFile(output, []byte(strings.Join(seeds, separator), 0644)
-		if err != nil {
-                        fmt.Printf("Unable to write %s file: %v", *output, err)
-                        os.Exit(1)
-                }
+		switch *output {
+		case "stdout":
+			fmt.Printf("%s", strings.Join(seeds, separator))
+		default:
+			if err := ioutil.WriteFile(*output, []byte(strings.Join(seeds, separator)), 0666); err != nil {
+				fmt.Printf("Unable to write %s file: %v", *output, err)
+				os.Exit(1)
+			}
+		}
 
 	case "synapse": // TODO
 		fmt.Printf("%v is not implemented yet\n", *discovery)
