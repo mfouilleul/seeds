@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var version = "0.1.4"
+var version = "0.1.5"
 
 var (
 	help      = flag.Bool("help", false, "Show this help.")
@@ -50,7 +50,6 @@ func main() {
 	case "kubedns":
 		cname, srvRecords, err := net.LookupSRV("", "", *service)
 		if err != nil {
-			fmt.Printf("Unable to do SRV query for %q: %v", *service, err)
 			os.Exit(1)
 		}
 		for _, srvRecord := range srvRecords {
